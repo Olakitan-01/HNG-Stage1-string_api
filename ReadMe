@@ -1,0 +1,114 @@
+🧩 HNG Stage 1 - String API
+
+This project is my submission for the HNG Internship Stage 1 task.
+It is a simple RESTful API built using Python Django, which performs string manipulation and filtering operations.
+
+** Features
+
+Analyze any given string (check if it’s a palindrome, count characters, reverse it, etc.)
+
+Filter strings using natural language queries (e.g., “palindromes”, “longer than 5”, “containing the letter a”)
+
+Returns clean JSON responses
+
+Built entirely with Django REST Framework
+
+** Tech Stack
+
+Python 3.10+
+
+Django 5+
+
+Django REST Framework
+
+
+** API Endpoints
+Method	Endpoint	Description	Example
+GET	/api/string/<str:string_value>/	Analyzes the given string (palindrome check, length, reversed string)	/api/string/madam/
+GET	/api/strings/filter-by-natural-language?query=<query>	Filters analyzed strings using a natural language query	/api/strings/filter-by-natural-language?query=palindromes
+
+** Example Response (for /api/string/madam/)
+{
+  "input": "madam",
+  "is_palindrome": true,
+  "length": 5,
+  "reversed": "madam"
+}
+
+** Setup Instructions
+
+Follow the steps below to set up and run the project locally:
+
+1. Clone the Repository
+git clone https://github.com/Olakitan-01/HNG-Stage1-string_api.git
+cd HNG-Stage1-string_api
+
+2. Create and Activate a Virtual Environment
+python -m venv venv
+venv\Scripts\activate   # On Windows
+# OR
+source venv/bin/activate  # On Mac/Linux
+
+3. Install Dependencies
+pip install -r requirements.txt
+
+4. Run Migrations
+python manage.py migrate
+
+5. Start the Development Server
+python manage.py runserver
+
+
+Now open your browser and visit:
+👉 http://127.0.0.1:8000/api/string/madam/
+
+** Dependencies
+
+These are the main dependencies required to run this project:
+
+Django==5.0.6
+djangorestframework==3.15.2
+requests==2.31.0
+
+
+Install them all at once using:
+
+pip install -r requirements.txt
+
+** How It Works
+
+The /api/string/<string_value>/ endpoint takes a string and analyzes it.
+
+Checks if it’s a palindrome
+
+Counts characters
+
+Returns the reversed string
+
+The /api/strings/filter-by-natural-language endpoint accepts a query parameter q that lets you filter strings using natural language.
+
+Example:
+
+q=palindromes → Returns only palindromic strings
+
+q=longer than 4 → Returns strings with length > 4
+
+q=containing the letter a → Returns strings containing “a”
+
+** Example Test URLs
+
+After running the project locally:
+
+http://127.0.0.1:8000/api/strings/madam/
+
+http://127.0.0.1:8000/api/strings/filter-by-natural-language?query=palindromes
+
+Name: Emmanuel Olanrewaju
+Track: Backend (Python/Django)
+HNG Internship - Stage 1 Submission
+
+****
+Where: 
+q = query
+qs= query_set
+***
