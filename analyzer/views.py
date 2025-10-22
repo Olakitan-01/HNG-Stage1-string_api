@@ -1,4 +1,4 @@
-from rest_framework import status, generics
+from rest_framework import status
 from rest_framework.response import Response
 from rest_framework.views import APIView
 from django.shortcuts import get_object_or_404
@@ -14,17 +14,18 @@ from .utils import (
 )
 
 
-class CreateAnalyzeStringView(APIView):
+class AnalyzeStringView(APIView):
+    """Handles POST /strings and GET /strings"""
+
     def post(self, request):
         serializer = AnalyzeInputSerializer(data=request.data)
         if not serializer.is_valid():
-            return Response({"error": "Invalid request body"}, status=status.HTTP_400_BAD_REQUEST)
+            return Response(
+                {"error": "Missing or invalid 'value' field"},
+                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            )
 
         value = serializer.validated_data["value"]
-
-        if not isinstance(value, str):
-            return Response({"error": "Value must be a string"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
-
         sha_hash = compute_sha256(value)
 
         if AnalyzedString.objects.filter(id=sha_hash).exists():
@@ -43,20 +44,9 @@ class CreateAnalyzeStringView(APIView):
 
         return Response(AnalyzedStringSerializer(analyzed).data, status=status.HTTP_201_CREATED)
 
-
-class GetStringView(APIView):
-    def get(self, request, string_value):
-        sha_hash = compute_sha256(string_value)
-        analyzed = get_object_or_404(AnalyzedString, id=sha_hash)
-        return Response(AnalyzedStringSerializer(analyzed).data, status=status.HTTP_200_OK)
-
-
-class ListStringsView(generics.ListAPIView):
-    serializer_class = AnalyzedStringSerializer
-
-    def get_queryset(self):
+    def get(self, request):
         qs = AnalyzedString.objects.all()
-        params = self.request.query_params
+        params = request.query_params
 
         is_palindrome_param = params.get("is_palindrome")
         min_length = params.get("min_length")
@@ -75,30 +65,38 @@ class ListStringsView(generics.ListAPIView):
         if contains_character is not None:
             qs = qs.filter(value__icontains=contains_character)
 
-        return qs
-
-    def list(self, request, *args, **kwargs):
-        queryset = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
-
-        filters_applied = {
-            key: value
-            for key, value in request.query_params.items()
-            if key
-            in ["is_palindrome", "min_length", "max_length", "word_count", "contains_character"]
-        }
-
+        serializer = AnalyzedStringSerializer(qs, many=True)
         return Response(
             {
                 "data": serializer.data,
-                "count": queryset.count(),
-                "filters_applied": filters_applied,
+                "count": qs.count(),
+                "filters_applied": dict(params),
             },
             status=status.HTTP_200_OK,
         )
 
 
+class StringDetailView(APIView):
+    """Handles GET /strings/<string_value> and DELETE /strings/<string_value>"""
+
+    def get(self, request, string_value):
+        sha_hash = compute_sha256(string_value)
+        analyzed = get_object_or_404(AnalyzedString, id=sha_hash)
+        return Response(AnalyzedStringSerializer(analyzed).data, status=status.HTTP_200_OK)
+
+    def delete(self, request, string_value):
+        sha_hash = compute_sha256(string_value)
+        analyzed = AnalyzedString.objects.filter(id=sha_hash).first()
+        if not analyzed:
+            return Response({"error": "String not found"}, status=status.HTTP_404_NOT_FOUND)
+
+        analyzed.delete()
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+
 class NaturalLanguageFilterView(APIView):
+    """Handles GET /strings/filter-by-natural-language"""
+
     def get(self, request):
         query = request.query_params.get("query")
         if not query:
@@ -141,21 +139,7 @@ class NaturalLanguageFilterView(APIView):
             {
                 "data": data,
                 "count": len(data),
-                "interpreted_query": {
-                    "original": query,
-                    "parsed_filters": filters,
-                },
+                "interpreted_query": {"original": query, "parsed_filters": filters},
             },
             status=status.HTTP_200_OK,
         )
-
-
-class DeleteStringView(APIView):
-    def delete(self, request, string_value):
-        sha_hash = compute_sha256(string_value)
-        analyzed = AnalyzedString.objects.filter(id=sha_hash).first()
-        if not analyzed:
-            return Response({"error": "String not found"}, status=status.HTTP_404_NOT_FOUND)
-
-        analyzed.delete()
-        return Response(status=status.HTTP_204_NO_CONTENT)
