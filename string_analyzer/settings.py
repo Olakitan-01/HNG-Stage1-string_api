@@ -11,12 +11,21 @@ https://docs.djangoproject.com/en/5.2/ref/settings/
 """
 import os
 from pathlib import Path
+from django.db.models import Transform
+from django.db import models
 from dotenv import load_dotenv
 
 load_dotenv()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+class Length(Transform):
+    lookup_name = 'len'
+    function = 'LENGTH'
+
+models.CharField.register_lookup(Length)
+models.TextField.register_lookup(Length)
 
 
 # Quick-start development settings - unsuitable for production

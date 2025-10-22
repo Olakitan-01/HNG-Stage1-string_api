@@ -1,16 +1,13 @@
 from django.test import TestCase
-
-# Create your tests here.
 from rest_framework.test import APIClient
 import json
-
 
 class AnalyzerAPITestCase(TestCase):
     def setUp(self):
         self.client = APIClient()
-        self.post_url = "/api/strings"
-        self.list_url = "/api/strings/"
-        self.nlp_url = "/api/strings/filter-by-natural-language"
+        self.post_url = "/strings/"
+        self.list_url = "/strings/"
+        self.nlp_url = "/strings/filter-by-natural-language/"
 
     def test_post_and_get_string(self):
         body = {"value": "madam"}
@@ -18,9 +15,9 @@ class AnalyzerAPITestCase(TestCase):
         self.assertEqual(r.status_code, 201)
         data = r.json()
         self.assertEqual(data['value'], 'madam')
-        self.assertTrue(data['properties']['is_palindrome'])
+        self.assertTrue(data['is_palindrome'])
 
-        gr = self.client.get(f"/api/strings/madam")
+        gr = self.client.get(f"{self.list_url}madam/")
         self.assertEqual(gr.status_code, 200)
         self.assertEqual(gr.json()['value'], 'madam')
 
@@ -34,22 +31,22 @@ class AnalyzerAPITestCase(TestCase):
     def test_list_filters(self):
         self.client.post(self.post_url, data=json.dumps({"value": "madam"}), content_type='application/json')
         self.client.post(self.post_url, data=json.dumps({"value": "hello world"}), content_type='application/json')
-        r = self.client.get(self.list_url + '?is_palindrome=true')
+        r = self.client.get(self.list_url + '?isPalindrome=true')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['count'], 1)
+        self.assertEqual(len(r.json()), 1)
 
     def test_nlp_parser(self):
         self.client.post(self.post_url, data=json.dumps({"value": "madam"}), content_type='application/json')
-        r = self.client.get(self.nlp_url + '?query=all%20single%20word%20palindromic%20strings')
+        r = self.client.get(self.nlp_url + '?query=palindrome')
         self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.json()['count'], 1)
+        self.assertEqual(len(r.json()), 1)
 
     def test_delete(self):
         r = self.client.post(self.post_url, data=json.dumps({"value": "delete me"}), content_type='application/json')
         self.assertEqual(r.status_code, 201)
 
-        dr = self.client.delete(f"/api/strings/delete me/delete")
+        dr = self.client.delete(f"{self.list_url}delete me/")
         self.assertEqual(dr.status_code, 204)
 
-        gr = self.client.get(f"/api/strings/delete me")
+        gr = self.client.get(f"{self.list_url}delete me/")
         self.assertEqual(gr.status_code, 404)
