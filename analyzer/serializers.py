@@ -9,12 +9,11 @@ class AnalyzeInputSerializer(serializers.Serializer):
             raise serializers.ValidationError("Value must be a string")
         return value
 
-class AnalyzedStringSerializer(serializers.ModelSerializer):
-    hash = serializers.CharField(source="sha256_hash")
 
+class AnalyzedStringSerializer(serializers.ModelSerializer):
     class Meta:
         model = AnalyzedString
-        fields = ("value", "hash", "is_palindrome")
+        fields = "__all__"
 
     def to_representation(self, instance):
         return instance.to_dict()

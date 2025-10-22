@@ -14,12 +14,20 @@ class AnalyzeStringView(APIView):
         if not serializer.is_valid():
             return Response(
                 {"error": "Missing or invalid 'value' field"},
-                status=status.HTTP_422_UNPROCESSABLE_ENTITY,
-            )
+                status=status.HTTP_400_BAD_REQUEST,  # instead of 422
+    )
 
         value = serializer.validated_data["value"]
+        if not isinstance(value, str):
+            # 🔧 FIX: Explicitly handle invalid data type with 400
+            return Response(
+                {"error": "Value must be a string"},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+        
         if AnalyzedString.objects.filter(value=value).exists():
-            return Response({"error": "String already exists"}, status=status.HTTP_409_CONFLICT)
+            return Response({"error": "String already exists"}, 
+                            status=status.HTTP_409_CONFLICT)
 
         analyzed = AnalyzedString.objects.create(value=value)
         return Response(AnalyzedStringSerializer(analyzed).data, status=status.HTTP_201_CREATED)
@@ -35,9 +43,10 @@ class AnalyzeStringView(APIView):
             qs = qs.filter(is_palindrome=is_palindrome.lower() == "true")
         if length is not None:
             try:
-                qs = qs.filter(value__len=int(length))
+                qs = [obj for obj in qs if len(obj.value) == int(length)]
             except ValueError:
                 return Response({"error": "Invalid length"}, status=status.HTTP_422_UNPROCESSABLE_ENTITY)
+
 
         serializer = AnalyzedStringSerializer(qs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
@@ -65,22 +74,24 @@ class NaturalLanguageFilterView(APIView):
             return Response({"error": "Missing query parameter"}, status=status.HTTP_400_BAD_REQUEST)
 
         query_lower = query.lower()
-        qs = AnalyzedString.objects.all()
+        qs = list(AnalyzedString.objects.all())
 
         if "palindrome" in query_lower:
-            qs = qs.filter(is_palindrome=True)
-        if "length" in query_lower:
+            qs = [obj for obj in qs if obj.is_palindrome]
+        elif "length" in query_lower:
             try:
                 num = int("".join(filter(str.isdigit, query_lower)))
-                qs = qs.filter(value__len=num)
+                qs = [obj for obj in qs if len(obj.value) == num]
             except ValueError:
                 pass
         elif "longer than" in query_lower:
             try:
                 num = int("".join(filter(str.isdigit, query_lower)))
-                qs = qs.filter(value__len__gt=num)
+                qs = [obj for obj in qs if len(obj.value) > num]
             except ValueError:
                 pass
+
+
 
         serializer = AnalyzedStringSerializer(qs, many=True)
         return Response(serializer.data, status=status.HTTP_200_OK)
